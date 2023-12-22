@@ -1,43 +1,3 @@
-let randomPokemonBtn = document.getElementById('randomPokemonBtn')
-let container = document.getElementById('container')
-let gameContainer = document.getElementById('gameContainer')
-
-function displayPokemon(pokemon){
-    let pokemonCard = document.createElement('div')
-    pokemonCard.classList.add('pokemon-card')
-    let pokemonName = document.createElement('h2')
-    pokemonName.innerText = pokemon.name
-    let pokemonImg = document.createElement('img')
-    pokemonImg.src = pokemon.image
-    let pokemonType = document.createElement('p')
-    pokemonType.innerText = pokemon.type
-
-    pokemonCard.appendChild(pokemonName)
-    pokemonCard.appendChild(pokemonImg)
-    pokemonCard.appendChild(pokemonType)
-
-    container.appendChild(pokemonCard)
-}
-
-function getRandomPokemon(pokeId){
-    fetch(`https://pokeapi.co/api/v2/pokemon/${pokeId}`)
-    .then(response => response.json())
-    .then(data => {
-        let pokemon = {
-            name: data.name,
-            image: data.sprites['front_default'],
-            type: data.types.map(type => type.type.name).join(', ')
-        }
-        displayPokemon(pokemon)
-    });
-}
-
-randomPokemonBtn.addEventListener('click', () => {
-    let randomId = Math.floor(Math.random() * 151) + 1
-    getRandomPokemon(randomId)
-});
-
-
 const SCALE = 2;
 const WIDTH = 16;
 const HEIGHT = 18;
@@ -50,6 +10,9 @@ const FACING_LEFT = 2;
 const FACING_RIGHT = 3;
 const FRAME_LIMIT = 12;
 const MOVEMENT_SPEED = 1;
+
+const MAP_WIDTH = 320; // Set the width of your map (you can adjust this value)
+const MAP_HEIGHT = 240; // Set the height of your map (you can adjust this value)
 
 let canvas = document.querySelector('canvas');
 let ctx = canvas.getContext('2d');
@@ -72,78 +35,80 @@ function keyUpListener(event) {
 }
 
 function loadImage() {
-  img.src = 'https://opengameart.org/sites/default/files/Green-Cap-Character-16x18.png';
-  img.onload = function() {
-    window.requestAnimationFrame(gameLoop);
-  };
+    img.src = 'https://opengameart.org/sites/default/files/Green-Cap-Character-16x18.png';
+    img.onload = function() {
+        window.requestAnimationFrame(gameLoop);
+    };
 }
 
 function drawFrame(frameX, frameY, canvasX, canvasY) {
-  ctx.drawImage(img,
-                frameX * WIDTH, frameY * HEIGHT, WIDTH, HEIGHT,
-                canvasX, canvasY, SCALED_WIDTH, SCALED_HEIGHT);
+    ctx.drawImage(img,
+                  frameX * WIDTH, frameY * HEIGHT, WIDTH, HEIGHT,
+                  canvasX, canvasY, SCALED_WIDTH, SCALED_HEIGHT);
 }
 
 loadImage();
 
 let map = new Image();
-map.src = "images/map.png";
+map.src = "images/map.png"; // Replace with the path to your map image
 map.onload = function() {
-  ctx.drawImage(map, 0, 0);
+    // Draw the map initially at (0, 0) on the canvas.
+    ctx.drawImage(map, 0, 0);
 };
 
 function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  let hasMoved = false;
+    let hasMoved = false;
 
-  if (keyPresses.w) {
-    moveCharacter(0, -MOVEMENT_SPEED, FACING_UP);
-    hasMoved = true;
-  } else if (keyPresses.s) {
-    moveCharacter(0, MOVEMENT_SPEED, FACING_DOWN);
-    hasMoved = true;
-  }
+    if (keyPresses.w) {
+        moveCharacter(0, -MOVEMENT_SPEED, FACING_UP);
+        hasMoved = true;
+    } else if (keyPresses.s) {
+        moveCharacter(0, MOVEMENT_SPEED, FACING_DOWN);
+        hasMoved = true;
+    }
 
-  if (keyPresses.a) {
-    moveCharacter(-MOVEMENT_SPEED, 0, FACING_LEFT);
-    hasMoved = true;
-  } else if (keyPresses.d) {
-    moveCharacter(MOVEMENT_SPEED, 0, FACING_RIGHT);
-    hasMoved = true;
-  }
+    if (keyPresses.a) {
+        moveCharacter(-MOVEMENT_SPEED, 0, FACING_LEFT);
+        hasMoved = true;
+    } else if (keyPresses.d) {
+        moveCharacter(MOVEMENT_SPEED, 0, FACING_RIGHT);
+        hasMoved = true;
+    }
 
-  if (hasMoved) {
-    frameCount++;
-    if (frameCount >= FRAME_LIMIT) {
-      frameCount = 0;
-      currentLoopIndex++;
-      if (currentLoopIndex >= CYCLE_LOOP.length) {
+    if (hasMoved) {
+        frameCount++;
+        if (frameCount >= FRAME_LIMIT) {
+            frameCount = 0;
+            currentLoopIndex++;
+            if (currentLoopIndex >= CYCLE_LOOP.length) {
+                currentLoopIndex = 0;
+            }
+        }
+    }
+    if (!hasMoved) {
         currentLoopIndex = 0;
-      }
     }
-  }
-  if (!hasMoved) {
-    currentLoopIndex = 0;
-    }
-  drawFrame(CYCLE_LOOP[currentLoopIndex], currentDirection, positionX, positionY);
-  window.requestAnimationFrame(gameLoop);
+    drawFrame(CYCLE_LOOP[currentLoopIndex], currentDirection, positionX, positionY);
+    window.requestAnimationFrame(gameLoop);
 }
 
 function moveCharacter(deltaX, deltaY, direction) {
     if (positionX + deltaX > 0 && positionX + SCALED_WIDTH + deltaX < canvas.width) {
-      positionX += deltaX;
+        positionX += deltaX;
     }
     if (positionY + deltaY > 0 && positionY + SCALED_HEIGHT + deltaY < canvas.height) {
-      positionY += deltaY;
+        positionY += deltaY;
     }
     currentDirection = direction;
-    
-// When the character moves, the map is scrolling in the opposite direction
-    gameContainer.style.backgroundPositionX = -positionX + "px";
-    gameContainer.style.backgroundPositionY = -positionY + "px";
-  }
 
+    // Adjust the map position as the character moves.
+    let mapX = Math.min(Math.max(0, positionX + deltaX), MAP_WIDTH - canvas.width);
+    let mapY = Math.min(Math.max(0, positionY + deltaY), MAP_HEIGHT - canvas.height);
 
-
+    // Update the background position of the gameContainer to achieve scrolling.
+    gameContainer.style.backgroundPositionX = -mapX + "px";
+    gameContainer.style.backgroundPositionY = -mapY + "px";
+}
 
